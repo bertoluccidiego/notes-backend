@@ -1,5 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+
+const Note = require('./models/note');
 
 const app = express();
 
@@ -47,18 +50,15 @@ app.get('/', (request, response) => {
 });
 
 app.get('/api/notes', (request, response) => {
-  response.json(notes);
+  Note.find({}).then((fetchedNotes) => {
+    response.json(fetchedNotes);
+  });
 });
 
 app.get('/api/notes/:id', (request, response) => {
-  const id = Number(request.params.id);
-  const note = notes.find((n) => n.id === id);
-
-  if (note) {
+  Note.findById(request.params.id).then((note) => {
     response.json(note);
-  } else {
-    response.status(404).end();
-  }
+  });
 });
 
 app.delete('/api/notes/:id', (request, response) => {
@@ -68,6 +68,7 @@ app.delete('/api/notes/:id', (request, response) => {
   response.status(204).end();
 });
 
+// eslint-disable-next-line
 app.post('/api/notes', (request, response) => {
   const { body } = request;
 
@@ -75,20 +76,20 @@ app.post('/api/notes', (request, response) => {
     return response.status(400).json({ error: 'content missing' });
   }
 
-  const note = {
-    id: notes.length + 1,
-    date: new Date().toISOString(),
-    important: body.important || false,
+  const newNote = new Note({
     content: body.content,
-  };
-  notes = notes.concat(note);
+    important: body.important || false,
+    date: new Date(),
+  });
 
-  return response.json(note);
+  newNote.save().then((savedNote) => {
+    response.json(savedNote);
+  });
 });
 
 app.use(unknownEndpoint);
 
-const PORT = process.env.PORT || 3001;
+const { PORT } = process.env;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
