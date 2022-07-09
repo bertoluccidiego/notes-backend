@@ -26,6 +26,10 @@ function errorHandler(error, request, response, next) {
     return response.status(400).json({ error: 'malformatted id' });
   }
 
+  if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message });
+  }
+
   next(error);
 }
 
@@ -69,12 +73,8 @@ app.delete('/api/notes/:id', (request, response, next) => {
 });
 
 // eslint-disable-next-line
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
   const { body } = request;
-
-  if (!body.content) {
-    return response.status(400).json({ error: 'content missing' });
-  }
 
   const newNote = new Note({
     content: body.content,
@@ -82,20 +82,22 @@ app.post('/api/notes', (request, response) => {
     date: new Date(),
   });
 
-  newNote.save().then((savedNote) => {
-    response.json(savedNote);
-  });
+  newNote
+    .save()
+    .then((savedNote) => {
+      response.json(savedNote);
+    })
+    .catch((error) => next(error));
 });
 
 app.put('/api/notes/:id', (request, response, next) => {
-  const { body } = request;
+  const { content, important } = request.body;
 
-  const note = {
-    content: body.content,
-    important: body.important,
-  };
-
-  Note.findByIdAndUpdate(request.params.id, note, { new: true })
+  Note.findByIdAndUpdate(
+    request.params.id,
+    { content, important },
+    { new: true, runValidators: true, context: 'query' }
+  )
     .then((updatedNote) => {
       response.json(updatedNote);
     })
