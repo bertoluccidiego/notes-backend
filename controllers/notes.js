@@ -6,20 +6,14 @@ notesRouter.get('/', async (request, response) => {
   response.json(notes);
 });
 
-notesRouter.get('/:id', (request, response, next) => {
-  Note.findById(request.params.id)
-    .then((note) => {
-      if (note) {
-        response.json(note);
-      }
+/* eslint-disable-next-line */
+notesRouter.get('/:id', async (request, response) => {
+  const note = await Note.findById(request.params.id);
+  if (note) {
+    return response.json(note);
+  }
 
-      return response.status(404).end();
-    })
-    .catch((error) => {
-      next(error);
-      console.log(error);
-      response.status(400).json({ error: 'malformatted id' });
-    });
+  return response.status(404).end();
 });
 
 notesRouter.post('/', async (request, response) => {
@@ -35,12 +29,9 @@ notesRouter.post('/', async (request, response) => {
   response.status(201).json(savedNote);
 });
 
-notesRouter.delete('/:id', (request, response, next) => {
-  Note.findByIdAndRemove(request.params.id)
-    .then(() => {
-      response.status(204).end();
-    })
-    .catch((error) => next(error));
+notesRouter.delete('/:id', async (request, response) => {
+  await Note.findByIdAndRemove(request.params.id);
+  response.status(204).end();
 });
 
 notesRouter.put('/:id', (request, response, next) => {
